@@ -1,0 +1,18 @@
+package Thread;
+
+import java.io.IOException;
+
+public class Dem01 {
+
+	public static void main(String[] args) throws IOException {
+		
+		myThread1 T1 = new myThread1();
+		Thread Tn = new Thread(T1);
+		Tn.start();
+		System.in.read();
+		T1.stop
+
+
+	}
+
+}
