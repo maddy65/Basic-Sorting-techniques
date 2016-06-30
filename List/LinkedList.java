@@ -1,42 +1,50 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-package javaapplication2;
-import java.util.LinkedList.*;
+package GeeksSS;
 
-/**
- *
- * @author madhurendra
- */
 public class LinkedList {
-    Node head;
-    static class Node{
-        int data;
-        Node next;
-        Node(int d){
-            data = d;
-            next = null;
-        }
-    }
-    
-    public void printlist(){
-        Node n = head;
-        while(n != null){
-            System.out.println(n.data+" ");
-            n = n.next;
-        }
-    }
-    public static void main(String args[]){
-        LinkedList llist = new LinkedList();
-        llist.head = new Node(1);
-        Node second = new Node(2);
-        Node third = new Node(3);
-        
-        llist.head.next = second;
-        second.next = third;
-        llist.printlist();
-    }
+
+		Node head;
+		class Node{
+		    Node next;
+			int data;
+			Node(int d){
+				data = d;
+				next = null;
+			}
+		}
+	
+	void delLesserNodes(){
+		reverseList();
+		_delLesserNode();
+		reverseList();
+	}
+	private void _delLesserNode() {
+		Node current = head;
+		Node maxnode = head;
+		Node temp;
+		while(current != null && current.next != null){
+			if(current.next.data < maxnode.data){
+				temp = current.next;
+				current.next = temp.next;
+				temp = null;
+			}else{
+				current = current.next;
+				maxnode = current;
+			}
+		}
+		
+	}
+	
+	void push(int new_data){
+		Node new_node = new Node(new_data);
+		new_node.next = head;
+		head = new_node;
+	}
+	private void reverseList() {
+		
+	}
+	public static void main(String[] args) {
+		
+
+	}
 
 }
