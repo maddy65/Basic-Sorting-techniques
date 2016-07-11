@@ -1,23 +1,20 @@
-package CollectionTest;
-import java.io.*;
+package Collections;
+/*
+ * Program to store group of objects in to an array
+ */
 
 public class Employee {
-
+	// instant variable
+		int id;
 		String name;
-		String department;
-		String id;
-		String salary;
-		String sex;
 		
-		Employee(String n,String d, String i, String sal, String se){
-			name = n;
-			department = d;
-			id = i;
-			salary = sal;
-			sex = se;
+	// to store data
+		Employee(int i, String n){
+			int id;
+			name =n;
 		}
+	// mathod for display data
 		void displayData(){
-			System.out.println(name+"\t"+department+"\t"+id+"\t"+salary+"\t"+sex);
-		}
-
+			System.out.println(id+"\t"+name);
+		}		
 }
