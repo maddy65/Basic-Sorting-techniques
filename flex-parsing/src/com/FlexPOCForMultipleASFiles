@@ -1,0 +1,275 @@
+package com;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
+public class FlexPOCForMultipleASFiles {
+	private final String actionScriptfileLocation = "C:\\Users\\719911\\Documents\\workspace-sts\\Flex-Parsing\\src\\actionScriptFiles";
+	private final String mxmlFileLocation = "C:\\Users\\719911\\Documents\\workspace-sts\\Flex-Parsing\\src\\mxml";
+	private final String mxmlFileExtension = ".mxml";
+	private final String actionScriptFileExtension = ".as";
+	private final String FUNCTION = "function";
+	private final String commentsChar = "//";
+	private final String startCurlyBraces = "{";
+	private final String endCurlyBraces = "}";
+	private final String startBracket = "(";
+
+	public static void main(String[] args) throws IOException {
+		FlexPOCForMultipleASFiles mainClass = new FlexPOCForMultipleASFiles();
+		
+		/* Step 1*/
+		Map<String, StringBuffer> seperateFunctionAndBody = mainClass.SeperateFunctionAndBody();
+				
+		/* Step 2*/
+		Map<String, StringBuffer> actionScriptMapFromMXMLFiles = mainClass.getActionScriptMapFromMXMLFiles();
+		
+		/* Step 3 - Adding the collection objects(Maps) generated from both Step 1 and Step2 */
+		actionScriptMapFromMXMLFiles.forEach(seperateFunctionAndBody::putIfAbsent);
+		
+		/* Step 4*/
+		List<String> findingInActionScriptFiles = new ArrayList<String>();
+		
+		/* Step 5 - Adding the keys of both the maps to a common list*/
+		findingInActionScriptFiles.addAll(seperateFunctionAndBody.keySet());
+		findingInActionScriptFiles.addAll(actionScriptMapFromMXMLFiles.keySet());
+		
+		/* Step 6* - Adding the collection objects(Lists) generated from both Step 4 and Step5 */
+		Map<String, StringBuffer> eventListForEach = getEventListForEach(findingInActionScriptFiles,
+				seperateFunctionAndBody);
+		
+		/* Step 7 - Generate the required excel*/
+		GenerateExcelForMethodNamesAndLinks(eventListForEach);
+
+	}
+
+	/**
+	 * This method will generated a map where the key and value would be :
+	 * key - Method name from each of the ActionScript file
+	 * Value -  Method body from each of the Action Script file
+	 * For more information put a debug point on the return Map and analyse the data
+	 * at line no 123
+	 * @throws IOException
+	 */
+	private Map<String, StringBuffer> SeperateFunctionAndBody() throws IOException {
+		File folder = new File(actionScriptfileLocation);
+		File[] listOfFiles = folder.listFiles();
+		Map<String, StringBuffer> methodKeyAndBodyMap = new HashMap<String, StringBuffer>();
+		if (listOfFiles != null) {
+			StringBuffer methodBody = new StringBuffer("");
+			List<String> textContainingUniqueID = new ArrayList<String>();
+			for (File file : listOfFiles) {
+				if (checkForFileExtension(file.getName(), actionScriptFileExtension)) {
+					BufferedReader br = new BufferedReader(new FileReader(file));
+					String readLine = br.readLine();
+					String replaceUnnecessaryCode = "";
+					try {
+						boolean flagForMethodBody = false;
+						int countForBrackets = 1;
+						while (readLine != null) {
+
+							if (readLine.contains(FUNCTION) && readLine.contains(startBracket)) {
+								replaceUnnecessaryCode = replaceUnnecessaryCode(
+										readLine.substring(0, readLine.lastIndexOf(startBracket)));
+								textContainingUniqueID.add(replaceUnnecessaryCode);
+								methodBody = new StringBuffer("");
+								flagForMethodBody = true;
+
+							}
+							if (flagForMethodBody) {
+								if (readLine.contains(startCurlyBraces)) {
+									countForBrackets++;
+								} else if (readLine.contains(endCurlyBraces)) {
+									countForBrackets--;
+								}
+								if (methodBody.toString().equals("") && countForBrackets == 2) {
+									methodBody.append(startCurlyBraces + "\n");
+								} else if (!methodBody.toString().equals("") && countForBrackets > 0) {
+									if (!readLine.trim().startsWith(commentsChar)) {
+										methodBody.append(readLine + "\n");
+									}
+								}
+							}
+							if (countForBrackets == 1 && !methodBody.toString().equals("")
+									&& flagForMethodBody == true) {
+								methodKeyAndBodyMap.put(replaceUnnecessaryCode, methodBody);
+								flagForMethodBody = false;
+							}
+							readLine = br.readLine();
+
+						}
+					} finally {
+						br.close();
+					}
+				}
+			}
+			return methodKeyAndBodyMap;
+		} else {
+			System.out.println("No ActionScript Files Present in the location");
+			throw new IOException();
+		}
+
+	}
+
+	/**
+	 * 
+	 * 
+	 * @return
+	 */
+	private static Map<String, StringBuffer> getEventListForEach(List<String> methodNames,
+			Map<String, StringBuffer> methodBodies) {
+		Map<String, StringBuffer> returnEventResult = new HashMap<String, StringBuffer>();
+		Set<String> keyset = methodBodies.keySet();
+		for (String key : keyset) {
+			StringBuffer methodNamesInEachFunction = new StringBuffer();
+			for (String methodName : methodNames) {
+				if (methodBodies.get(key).indexOf(methodName) != -1) {
+					if (!key.trim().equals(methodName.trim())) {
+						methodNamesInEachFunction.append(methodName + ",  ");
+					}
+				}
+
+			}
+			returnEventResult.put(key, methodNamesInEachFunction);
+		}
+		return returnEventResult;
+	}
+
+	private static void GenerateExcelForMethodNamesAndLinks(Map<String, StringBuffer> eventListForEach) {
+		XSSFWorkbook workbook = new XSSFWorkbook();
+		XSSFSheet sheet = workbook.createSheet("ActionScript Analysis Report");
+		Set<String> keyset = eventListForEach.keySet();
+		int rownum = 0;
+		// Setting Header
+		Row headerRow = sheet.createRow(rownum++);
+		Cell createHeaderKeyCell = headerRow.createCell(0);
+		Cell createValueCell = headerRow.createCell(1);
+		createHeaderKeyCell.setCellValue("METHOD NAMES");
+		createValueCell.setCellValue("METHOD REFERENCES");
+		for (String key : keyset) {
+			int cellnum = 0;
+			Row row = sheet.createRow(rownum++);
+			StringBuffer objArr = eventListForEach.get(key);
+			Cell createCell = row.createCell(cellnum++);
+			Cell cell = createCell;
+			String stringKey = key;
+			Cell cell2 = row.createCell(cellnum++);
+			String stringVal = objArr.toString();
+			cell.setCellValue(stringKey);
+			cell2.setCellValue(stringVal);
+		}
+
+		try {
+			FileOutputStream out = new FileOutputStream(new File("ActionScriptMethodNamesWithReferences.xlsx"));
+			workbook.write(out);
+			out.close();
+			System.out.println("ActionScriptMethodNamesWithReferences written successfully on disk.");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+
+	private static String replaceUnnecessaryCode(String nextLine) {
+		String[] irrelevantWords = { "function", "private", "public", "protected", "override", "get ", "set " };
+		String replacedString = nextLine.replaceAll(irrelevantWords[0], "").replaceAll(irrelevantWords[1], "")
+				.replaceAll(irrelevantWords[2], "").replaceAll(irrelevantWords[3], "")
+				.replaceAll(irrelevantWords[4], "").replaceAll(irrelevantWords[5], "")
+				.replaceAll(irrelevantWords[6], "");
+
+		return replacedString.trim();
+	}
+
+	/**
+	 * This method will generated a map where the key and value would be :
+	 * key - Method name from each of the ActionScript Code Present in each MXML file
+	 * Value -  Method body from each of the ActionScript Code Present in each MXML file
+	 * For more information put a debug point on the return statement and analyse the data
+	 * @throws IOException
+	 */
+	private Map<String, StringBuffer> getActionScriptMapFromMXMLFiles() throws IOException {
+		Map<String, StringBuffer> mxmlData = new HashMap<String, StringBuffer>();
+		File folder = new File(mxmlFileLocation);
+		File[] listOfFiles = folder.listFiles();
+		if (listOfFiles.length != 0) {
+			for (File file : listOfFiles) {
+				if (checkForFileExtension(file.getName(), mxmlFileExtension)) {
+					BufferedReader br = new BufferedReader(new FileReader(file));
+					String content = br.lines().collect(Collectors.joining("\n"));
+					Document document = Jsoup.parse(content);
+					Elements elementsByAttribute = document.getElementsByTag("mx:Script");
+					StringBuffer methodBody = new StringBuffer("");
+					List<String> textContainingUniqueID = new ArrayList<String>();
+					for (Element allScriptElements : elementsByAttribute) {
+						String replaceUnnecessaryCode = "";
+						String[] split = allScriptElements.toString().split("\n");
+						boolean flagForACBody = false;
+						int countForBracket = 1;
+						for (String eachLine : split) {
+							if (eachLine.contains(FUNCTION) && eachLine.contains(startBracket)) {
+								replaceUnnecessaryCode = replaceUnnecessaryCode(
+										eachLine.substring(0, eachLine.lastIndexOf(startBracket)));
+								textContainingUniqueID.add(replaceUnnecessaryCode);
+								methodBody = new StringBuffer("");
+								flagForACBody = true;
+							}
+
+							if (flagForACBody) {
+								if (eachLine.contains(startCurlyBraces)) {
+									countForBracket++;
+								} else if (eachLine.contains(endCurlyBraces)) {
+									countForBracket--;
+								}
+								if (methodBody.toString().equals("") && countForBracket == 2) {
+									methodBody.append(startCurlyBraces + "\n");
+								} else if (!methodBody.toString().equals("") && countForBracket > 0) {
+									if (!eachLine.trim().startsWith(commentsChar)) {
+										methodBody.append(eachLine + "\n");
+									}
+								}
+
+							}
+							if (countForBracket == 1 && !methodBody.toString().equals("") && flagForACBody == true) {
+								mxmlData.put(replaceUnnecessaryCode, methodBody);
+								flagForACBody = false;
+							}
+
+						}
+
+					}
+					br.close();
+				}
+
+			}
+		}
+		return mxmlData;
+	}
+
+	private boolean checkForFileExtension(String fileName, String fileExtension) {
+		int lastIndexOf = fileName.lastIndexOf(".");
+		if (lastIndexOf == -1) {
+			return false;
+		}
+		if (fileName.substring(lastIndexOf).equals(fileExtension)) {
+			return true;
+		}
+		return false;
+	}
+}
