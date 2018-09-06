@@ -1,0 +1,19 @@
+
+<?xml version = '1.0' encoding = 'ISO-8859-1'?>
+<mx:Application xmlns:mx = 'http://www.adobe.com/2006/mxml'>
+
+  <mx:PhoneNumberValidator source = '{phoneNumber}' 
+ property = 'text'/>
+  <mx:EmailValidator source = '{EmailId}' 
+ property = 'text'/>
+
+  <mx:Panel title = 'Flex Validator Control'>
+  
+  <mx:TextInput id = 'phoneNumber' 
+  text = 'Your valid phone number.'/>
+  <mx:TextInput id = 'EmailId' 
+  text = 'baadshah@newstrackindia.com'/>
+  
+  </mx:Panel>
+
+</mx:Application>

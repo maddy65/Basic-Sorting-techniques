@@ -1,0 +1,44 @@
+<mx:itemRenderer>
+		<mx:Component>
+			<mx:HBox verticalAlign="top" id="id1">
+				<mx:Image source="{data.image}" id="id2"/>
+				<mx:VBox height="115" verticalAlign="top" verticalGap="0" id="id3">
+					<mx:Text text="{data.title}" fontWeight="bold" width="100%" id="id4"/>
+
+					<mx:Spacer height="20" id="id5"/>
+					<mx:Label text="{data.author}" id="id6"/>
+					<mx:Label text="Available {data.date}" id="id7"/>
+					<mx:Spacer height="100%" id="id8"/>
+					<mx:HBox width="100%" horizontalAlign="right" id="id9">
+						<mx:Button label="Buy" fillColors="[0x99ff99,0x99ff99]" id="id10">
+
+							<mx:click>
+							<![CDATA[
+								var e:BuyBookEvent = new BuyBookEvent();
+								e.bookData = data;
+								dispatchEvent(e);
+							]]>
+							</mx:click>
+						</mx:Button>
+
+					</mx:HBox>
+				</mx:VBox>
+			</mx:HBox>
+		</mx:Component>
+	</mx:itemRenderer>
+
+ <mx:Panel title="DataGrid Example" height="100%" width="100%" 
+        paddingTop="10" paddingLeft="10" paddingRight="10" id="id11" click="dispatchEvent(e)">
+
+        <mx:Label width="100%" color="blue"
+            text="List of learning management systems." id="id12"/>
+
+        <mx:DataGrid id="dg" width="100%" height="100%" rowCount="7" dataProvider="{lms_list}" id="id13">
+	  <mx:columns>
+	    <mx:DataGridColumn dataField="Name" headerText="Name"id="id14"/>
+	    <mx:DataGridColumn dataField="Type" headerText="Type" id="id15"/>
+	    <mx:DataGridColumn dataField="License" headerText="License" id="id16"/>
+	    <mx:DataGridColumn dataField="Description" headerText="Description" id="id17"/>
+	  </mx:columns>
+	</mx:DataGrid>
+    </mx:Panel>

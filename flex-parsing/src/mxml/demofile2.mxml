@@ -1,0 +1,3 @@
+<mx:Button id="btnDisplayUserId" label="DisplayUID" click="displayUserId(nameInput)" clear="ClearFunction()" ></mx:Button> 
+<mx:EmailValidator id="emailInput_EmailValidator" source="{emailInput}" property="text" required="true"   click="displayValidUserId(nameInput)" clear="ClearValidFunction()"/>
+<mx:StringValidator id="phoneInput_stringValidator" source="{phoneInput}" property="text" minLength="10" maxLength="10" required="true" click="displayPhoneNumber(nameInput)" clear="ClearPhoneNumberFunction()"/>

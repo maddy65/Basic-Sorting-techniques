@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+	
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" 
+				xmlns:s="library://ns.adobe.com/flex/spark"
+				width="750" height="600"
+				>
+
+	
+  <mx:Script>
+ <![CDATA[
+	include "ValidationSample12.as" ;
+ ]]>
+ </mx:Script>
+
+  <mx:Script>	  
+ <![CDATA[
+
+			    import mx.validators.Validator;
+				private var myValidators:Array;
+				private function initValidatorArray():void {
+				  myValidators=[nameInput_stringValidator, phoneInput_stringValidator];
+				  onMouseDownHandler(event:MouseEvent);
+				}
+				
+				private function initValidatorArrayForFunc2():void {
+				  myValidators=[nameInput_stringValidator, phoneInput_stringValidator];
+				  SmallExplosion(event:MouseEvent);
+				}
+			
+			
+ ]]>
+ </mx:Script> 
+	
+<!-- User interface -->
+	<mx:StringValidator id="nameInput_stringValidator" source="{nameInput}" property="text"  minLength="2" maxLength="15" required="true" />
+	
+	<mx:StringValidator id="phoneInput_stringValidator" source="{phoneInput}" property="text" minLength="10" maxLength="10" required="true" />
+	
+	<mx:EmailValidator id="emailInput_EmailValidator" source="{emailInput}" property="text" required="true"   />
+	
+	<s:Panel title="Employee Information">
+		<mx:Form>
+			<mx:FormItem label="Name:">
+				<s:s:TextInput
+					id="nameInput"  maxChars="15" />
+			</mx:FormItem>
+
+			<mx:FormItem label="Phone: ">
+				<s:TextInput id="phoneInput" restrict="0-9" maxChars="10"/>
+			</mx:FormItem>
+
+			<mx:FormItem label="Email: ">
+				<s:TextInput id="emailInput"/>
+			</mx:FormItem>
+			<mx:TextArea id="textArea" />
+	        <mx:Button id="btnTest1" label="TestButton1" click="initValidatorArray()" change="" ></mx:Button> 
+	        <mx:Button id="btnTest2" label="TestButton2" click="initValidatorArrayForFunc2()" change="" ></mx:Button> 
+	        
+			<mx:Button id="btnDisplay" label="Submit" click="submitHandler()" change="" ></mx:Button> 
+			<mx:Button id="btnDisplayUserId" label="DisplayUID" click="displayUserId(nameInput)" clear="ClearFunction()" contextMenu currentStateChange currentStateChanging doubleClick></mx:Button> 
+		</mx:Form>
+	</s:Panel>
+	
+</mx:Application>		
