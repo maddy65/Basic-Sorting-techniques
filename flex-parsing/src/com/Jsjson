@@ -1,0 +1,147 @@
+package com;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.wink.json4j.JSONException;
+import org.apache.wink.json4j.OrderedJSONObject;
+
+public class GenerateJSONFromMXMLData {
+       public static final String MXML_FILE_PATH = "C:\\Users\\719911\\Documents\\workspace-sts\\Flex-Parsing\\MXMLAttributeInformation.xlsx";
+       private static final String FILENAMES = "C:\\Users\\719911\\Documents\\workspace-sts\\Flex-Parsing\\";
+       private static final String FILEEXT_JS = ".js";
+       private static final String CONSTANT_XTYPE = "xtype";
+       private static final String DELIM_COLON = ":";
+       private static final String DELIM_COMMA = ",";
+       private static final String DELIM_EQUAL = "=";
+
+       public static void main(String[] args) throws Exception {
+              GenerateJSONFromMXMLData generateJSONFromMXMLData = new GenerateJSONFromMXMLData();
+              Map<String, List<StringBuffer>> getmapOfRequiredDataFromExcel = generateJSONFromMXMLData
+                           .getmapOfRequiredDataFromExcel();
+              Map<String, List<OrderedJSONObject>> generateJsonObject = generateJSONFromMXMLData
+                           .GenerateJsonObject(getmapOfRequiredDataFromExcel);
+              generateJSONFromMXMLData.writeDataInFiles(generateJsonObject);
+
+       }
+
+       private Map<String, List<StringBuffer>> getmapOfRequiredDataFromExcel() throws Exception {
+              FileInputStream file = new FileInputStream(new File(MXML_FILE_PATH));
+              Workbook workbook = WorkbookFactory.create(file);
+              Map<String, List<StringBuffer>> sheetDataInMap = new HashMap<String, List<StringBuffer>>();
+              for (int sheetCount = 0; sheetCount < workbook.getNumberOfSheets(); sheetCount++) {
+                     List<StringBuffer> sheetData = new ArrayList<StringBuffer>();
+
+                     Sheet sheetWithData = workbook.getSheetAt(sheetCount);
+                     DataFormatter dataFormatter = new DataFormatter();
+                     Iterator<Row> rowIterator = sheetWithData.rowIterator();
+                     while (rowIterator.hasNext()) {
+                           Row next = rowIterator.next();
+                           if (next.getRowNum() != 0) {
+                                  Iterator<Cell> cellIterator = next.cellIterator();
+                                  StringBuffer rowData = new StringBuffer();
+                                  while (cellIterator.hasNext()) {
+                                         Cell cell = cellIterator.next();
+                                         if (cell.getColumnIndex() == 1 || cell.getColumnIndex() == 2) {
+                                                String cellValue = dataFormatter.formatCellValue(cell);
+                                                if ((cellValue.lastIndexOf(",") == (cellValue.length() - 1)) && cell.getColumnIndex() == 2
+                                                             && !cellValue.equals("")) {
+                                                       cellValue = cellValue.substring(0, cellValue.length() - 1);
+                                                }
+                                                rowData.append(cellValue);
+                                                if (cell.getColumnIndex() == 1) {
+                                                       rowData.append("*");
+                                                }
+
+                                         }
+                                  }
+                                  sheetData.add(rowData);
+                           }
+                     }
+
+                     sheetDataInMap.put(workbook.getSheetName(sheetCount), sheetData);
+              }
+
+              return sheetDataInMap;
+       }
+
+       @SuppressWarnings("unchecked")
+       private Map<String, List<OrderedJSONObject>> GenerateJsonObject(
+                     Map<String, List<StringBuffer>> getmapOfRequiredDataFromExcel) throws JSONException {
+
+              Set<String> keySet = getmapOfRequiredDataFromExcel.keySet();
+              Map<String, List<OrderedJSONObject>> jsonObjectMapWithFileName = new HashMap<String, List<OrderedJSONObject>>();
+
+              for (String singleSheetData : keySet) {
+                     List<OrderedJSONObject> JsonList = new ArrayList<OrderedJSONObject>();
+                     List<StringBuffer> eachSheetlist = getmapOfRequiredDataFromExcel.get(singleSheetData);
+                     for (StringBuffer listElements : eachSheetlist) {
+                           String[] split = listElements.toString().split("\\*");
+                           OrderedJSONObject jsonObject = new OrderedJSONObject();
+                           try {
+                                  for (int lengthOfArray = 0; lengthOfArray < split.length; lengthOfArray++) {
+                                         if (lengthOfArray == 0) {
+                                                String[] split2 = split[0].split(DELIM_COLON);
+                                                jsonObject.put(String.valueOf(CONSTANT_XTYPE), String.valueOf(split2[1]));
+                                         }
+                                         if (lengthOfArray == 1) {
+                                                String[] split3 = split[1].split(DELIM_COMMA);
+                                                for (int lengthOfSplitElement = 0; lengthOfSplitElement < split3.length; lengthOfSplitElement++) {
+                                                       String[] split4 = split3[lengthOfSplitElement].split(DELIM_EQUAL);
+                                                       jsonObject.put(String.valueOf(split4[0]), String.valueOf(split4[1]));
+                                                }
+                                         }
+
+                                  }
+                           } catch (ArrayIndexOutOfBoundsException e) {
+                                  System.out.println(e);
+                                  System.out.println("Line where exception occured : " + listElements.toString()
+                                                + "  Present in file :" + singleSheetData);
+                           }
+                           JsonList.add(jsonObject);
+
+                     }
+                     jsonObjectMapWithFileName.put(singleSheetData, JsonList);
+              }
+              return jsonObjectMapWithFileName;
+       }
+
+       private void writeDataInFiles(Map<String, List<OrderedJSONObject>> generateJsonObject) throws IOException {
+              Set<String> keySet = generateJsonObject.keySet();
+              for (String eachFile : keySet) {
+                     BufferedWriter bw = null;
+                     FileWriter fw = null;
+                     try {
+
+                           fw = new FileWriter(FILENAMES + eachFile + FILEEXT_JS);
+                           bw = new BufferedWriter(fw);
+                           List<OrderedJSONObject> jsonForEachFile = generateJsonObject.get(eachFile);
+                           for (OrderedJSONObject eachJSONObejct : jsonForEachFile) {
+                                  bw.write(String.valueOf(eachJSONObejct) + "\n");
+                           }
+
+                     } finally {
+                           bw.close();
+                           fw.close();
+                           System.out.println("JS files generated sucessfully ....");
+                     }
+              }
+
+       }
+
+}
